@@ -17,15 +17,7 @@ const upload = multer({
     }
 });
 
-app.get('/', (req, res) => {
-    res.json({
-        message: 'Welcome to Pikit App',
-        status: 'Server is running successfully',
-        timestamp: new Date().toISOString(),
-    });
-});
-
-app.get('/operations', (req, res) => {
+app.get('/api/operations', (req, res) => {
     try {
         const operations = {
             'objectDetection': {
@@ -58,7 +50,7 @@ app.get('/operations', (req, res) => {
     }
 });
 
-app.post('/process/refrigerator', upload.single('file'), async (req, res) => {
+app.post('/api/process/refrigerator', upload.single('file'), async (req, res) => {
     try {
         Logger.info('Processing refrigerator image', { 
             fileName: req.file?.originalname,
@@ -95,7 +87,7 @@ app.post('/process/refrigerator', upload.single('file'), async (req, res) => {
     }
 });
 
-app.post('/process/bill', upload.single('file'), async (req, res) => {
+app.post('/api/process/bill', upload.single('file'), async (req, res) => {
     try {
         Logger.info('Processing bill image', { 
             fileName: req.file?.originalname,
