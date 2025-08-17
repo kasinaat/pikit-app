@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pikit App - Image Processing</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background-color: #f8f9ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background-color: #f0f0ff;
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: #666;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .preview-container {
+            margin: 20px 0;
+            text-align: center;
+            position: relative;
+            display: inline-block;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 500px;
+            border-radius: 10px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            display: block;
+        }
+
+        .image-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .object-marker {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #ff4757;
+            border: 2px solid white;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            animation: pulse 2s infinite;
+            cursor: pointer;
+            pointer-events: all;
+            z-index: 10;
+        }
+
+        .object-marker:hover {
+            background: #ff3742;
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(255, 71, 87, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 71, 87, 0);
+            }
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 20;
+            transform: translate(-50%, -120%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: rgba(0, 0, 0, 0.9) transparent transparent transparent;
+        }
+
+        .object-marker:hover .tooltip {
+            opacity: 1;
+        }
+
+        .items-list {
+            margin-top: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            display: none;
+        }
+
+        .items-list.show {
+            display: block;
+        }
+
+        .items-list h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .item-card {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .item-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .item-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .item-coordinates {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .results {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .results h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .results pre {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 14px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background-color: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .operation-selector {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .operation-selector label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .operation-select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1rem;
+            background: white;
+            color: #333;
+            transition: border-color 0.3s ease;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=US-ASCII,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 5'><path fill='%23666' d='m2 0-2 2h4zm0 5 2-2h-4z'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            background-size: 12px;
+            padding-right: 40px;
+        }
+
+        .operation-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .operation-description {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            color: #666;
+            text-align: left;
+            min-height: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Pikit App</h1>
+            <p>Upload an image to detect objects using AI</p>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📷</div>
+            <div class="upload-text">Drag & drop an image here or click to browse</div>
+            <input type="file" id="fileInput" class="file-input" accept="image/*">
+            <button type="button" class="btn" onclick="document.getElementById('fileInput').click()">
+                Choose Image
+            </button>
+        </div>
+
+        <div class="operation-selector">
+            <label for="operationSelect">🎯 Select AI Operation:</label>
+            <select id="operationSelect" class="operation-select" onchange="updateOperationDescription()">
+                <option value="">Loading operations...</option>
+            </select>
+            <div id="operationDescription" class="operation-description">
+                Select an operation to see its description
+            </div>
+        </div>
+
+    
+
+        <div class="preview-container" id="previewContainer"></div>
+
+        <div style="text-align: center;">
+            <button type="button" class="btn" id="processBtn" onclick="processImage()" disabled>
+                Process Image
+            </button>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <div>Processing your image...</div>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="items-list" id="itemsList">
+            <h3>🎯 Detected Items</h3>
+            <div id="itemsContainer"></div>
+        </div>
+
+        <div class="results" id="results">
+            <h3>📊 Raw JSON Response</h3>
+            <pre id="resultContent"></pre>
+        </div>
+    </div>
+
+    <script>
+        let selectedFile = null;
+        let availableOperations = {};
+
+        // Load available operations on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAvailableOperations();
+        });
+
+        // File input change handler
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            handleFileSelect(e.target.files[0]);
+        });
+
+        // Drag and drop handlers
+        const uploadArea = document.getElementById('uploadArea');
+        
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('image/')) {
+                handleFileSelect(files[0]);
+            }
+        });
+
+        // Handle file selection
+        function handleFileSelect(file) {
+            if (!file || !file.type.startsWith('image/')) {
+                showError('Please select a valid image file.');
+                return;
+            }
+
+            selectedFile = file;
+            
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const previewContainer = document.getElementById('previewContainer');
+                previewContainer.innerHTML = `
+                    <img src="${e.target.result}" alt="Preview" class="preview-image" id="previewImage">
+                    <div class="image-overlay" id="imageOverlay"></div>
+                `;
+            };
+            reader.readAsDataURL(file);
+
+            // Enable process button
+            document.getElementById('processBtn').disabled = false;
+            
+            // Hide previous results
+            hideResults();
+            hideItemsList();
+            hideError();
+        }
+
+        // Load available operations from server
+        async function loadAvailableOperations() {
+            try {
+                const response = await fetch('/operations');
+                const data = await response.json();
+                
+                if (data.success) {
+                    availableOperations = data.operations;
+                    populateOperationSelector();
+                } else {
+                    throw new Error(data.error || 'Failed to fetch operations');
+                }
+            } catch (error) {
+                console.error('Failed to load operations:', error);
+                
+                // Fallback to hardcoded operations if server request fails
+                availableOperations = {
+                    'objectDetection': {
+                        name: '🔍 Object Detection',
+                        description: 'Analyze refrigerator images to identify all visible food items with their precise coordinates. Perfect for tracking inventory.',
+                        endpoint: '/process/refrigerator'
+                    },
+                    'billExtraction': {
+                        name: '🧾 Bill Extraction',
+                        description: 'Extract all information from bills and receipts including items, prices, store details, and totals. Great for expense tracking.',
+                        endpoint: '/process/bill'
+                    }
+                };
+                
+                populateOperationSelector();
+                showError('Using offline operations (server connection failed)');
+            }
+        }
+
+        // Populate the operation selector dropdown
+        function populateOperationSelector() {
+            const select = document.getElementById('operationSelect');
+            select.innerHTML = '<option value="">Choose an operation...</option>';
+            
+            Object.keys(availableOperations).forEach(key => {
+                const operation = availableOperations[key];
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = operation.name;
+                select.appendChild(option);
+            });
+
+            // Set default selection to objectDetection
+            select.value = 'objectDetection';
+            updateOperationDescription();
+        }
+
+        // Update operation description when selection changes
+        function updateOperationDescription() {
+            const select = document.getElementById('operationSelect');
+            const description = document.getElementById('operationDescription');
+            
+            if (select.value && availableOperations[select.value]) {
+                const operation = availableOperations[select.value];
+                let descriptionHTML = `<strong>${operation.description}</strong>`;
+                
+                if (operation.example) {
+                    descriptionHTML += `<br><br><em>Example: ${operation.example}</em>`;
+                }
+                
+                if (operation.supportedFileTypes) {
+                    descriptionHTML += `<br><small>Supported: ${operation.supportedFileTypes.join(', ')}</small>`;
+                }
+                
+                description.innerHTML = descriptionHTML;
+            } else {
+                description.textContent = 'Select an operation to see its description';
+            }
+        }
+
+        // Process image with selected operation
+        async function processImage() {
+            if (!selectedFile) {
+                showError('Please select an image first.');
+                return;
+            }
+
+            const selectedOperation = document.getElementById('operationSelect').value;
+            if (!selectedOperation) {
+                showError('Please select an operation first.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+
+            // Show loading
+            showLoading();
+            hideError();
+            hideResults();
+            hideItemsList();
+
+            try {
+                const endpoint = availableOperations[selectedOperation].endpoint;
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    showResults(result, selectedOperation);
+                } else {
+                    throw new Error(result.error || 'Failed to process image');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Error processing image: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // UI helper functions
+        function showLoading() {
+            document.getElementById('loading').classList.add('show');
+            document.getElementById('processBtn').disabled = true;
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('show');
+            document.getElementById('processBtn').disabled = false;
+        }
+
+        function showResults(data, operation) {
+            // Show raw JSON
+            document.getElementById('resultContent').textContent = JSON.stringify(data, null, 2);
+            document.getElementById('results').classList.add('show');
+            
+            // Handle different operation results
+            if (data.success && data.data) {
+                if (operation === 'objectDetection' && data.data.objects) {
+                    displayDetectedItems(data.data.objects);
+                    placeMarkersOnImage(data.data.objects);
+                } else if (operation === 'billExtraction') {
+                    displayBillData(data.data);
+                } else {
+                    displayGenericData(data.data, operation);
+                }
+            }
+        }
+
+        function displayBillData(billData) {
+            const itemsContainer = document.getElementById('itemsContainer');
+            const itemsList = document.getElementById('itemsList');
+            const header = itemsList.querySelector('h3');
+            
+            header.textContent = '🧾 Extracted Bill Data';
+            
+            if (!billData || !billData.data) {
+                itemsContainer.innerHTML = '<p style="color: #666; text-align: center;">No bill data extracted.</p>';
+                itemsList.classList.add('show');
+                return;
+            }
+            
+            const data = billData.data;
+            let billHTML = '';
+            
+            // Store info
+            if (data.store || data.address || data.phone) {
+                billHTML += `
+                    <div class="item-card">
+                        <div class="item-name">📍 Store Information</div>
+                        <div class="item-coordinates">
+                            ${data.store ? `Store: ${data.store}<br>` : ''}
+                            ${data.address ? `Address: ${data.address}<br>` : ''}
+                            ${data.phone ? `Phone: ${data.phone}` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Date and time
+            if (data.date || data.time) {
+                billHTML += `
+                    <div class="item-card">
+                        <div class="item-name">📅 Transaction Details</div>
+                        <div class="item-coordinates">
+                            ${data.date ? `Date: ${data.date}<br>` : ''}
+                            ${data.time ? `Time: ${data.time}` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Items
+            if (data.items && data.items.length > 0) {
+                billHTML += `<div class="item-card"><div class="item-name">🛒 Items Purchased</div><div class="item-coordinates">`;
+                data.items.forEach(item => {
+                    billHTML += `• ${item.name}: $${item.value.toFixed(2)} (Qty: ${item.quantity} ${item.unit || ''})<br>`;
+                });
+                billHTML += `</div></div>`;
+            }
+            
+            // Total
+            if (data.totalAmount) {
+                billHTML += `
+                    <div class="item-card" style="border-left-color: #28a745;">
+                        <div class="item-name">💰 Total Amount</div>
+                        <div class="item-coordinates" style="font-size: 16px; font-weight: bold;">
+                            $${data.totalAmount.toFixed(2)}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            itemsContainer.innerHTML = billHTML || '<p style="color: #666; text-align: center;">No bill data extracted.</p>';
+            itemsList.classList.add('show');
+        }
+
+        function displayGenericData(data, operation) {
+            const itemsContainer = document.getElementById('itemsContainer');
+            const itemsList = document.getElementById('itemsList');
+            const header = itemsList.querySelector('h3');
+            
+            header.textContent = `📊 ${operation} Results`;
+            
+            let html = '<div class="item-card">';
+            html += '<div class="item-name">📋 Analysis Results</div>';
+            html += '<div class="item-coordinates">';
+            html += `Operation: ${operation}<br>`;
+            html += `Status: ${data.success ? 'Success' : 'Failed'}<br>`;
+            html += 'Check the raw JSON below for detailed results.';
+            html += '</div></div>';
+            
+            itemsContainer.innerHTML = html;
+            itemsList.classList.add('show');
+        }
+
+        function displayDetectedItems(objects) {
+            const itemsContainer = document.getElementById('itemsContainer');
+            const itemsList = document.getElementById('itemsList');
+            
+            if (!objects || objects.length === 0) {
+                itemsContainer.innerHTML = '<p style="color: #666; text-align: center;">No items detected in the image.</p>';
+                itemsList.classList.add('show');
+                return;
+            }
+            
+            let itemsHTML = '';
+            objects.forEach((item, index) => {
+                itemsHTML += `
+                    <div class="item-card" id="item-${index}" onclick="highlightMarker(${index})">
+                        <div class="item-name">${item.name}</div>
+                        <div class="item-coordinates">
+                            Position: (${(item.coordinates.xPoint * 100).toFixed(1)}%, ${(item.coordinates.yPoint * 100).toFixed(1)}%)
+                        </div>
+                    </div>
+                `;
+            });
+            
+            itemsContainer.innerHTML = itemsHTML;
+            itemsList.classList.add('show');
+        }
+
+        function placeMarkersOnImage(objects) {
+            const overlay = document.getElementById('imageOverlay');
+            const previewImage = document.getElementById('previewImage');
+            
+            if (!overlay || !previewImage || !objects) return;
+            
+            // Clear existing markers
+            overlay.innerHTML = '';
+            
+            // Wait for image to load if it hasn't already
+            if (previewImage.complete) {
+                addMarkers();
+            } else {
+                previewImage.onload = addMarkers;
+            }
+            
+            function addMarkers() {
+                objects.forEach((item, index) => {
+                    const marker = document.createElement('div');
+                    marker.className = 'object-marker';
+                    marker.id = `marker-${index}`;
+                    
+                    // Convert normalized coordinates (0-1) to pixel positions
+                    const x = item.coordinates.xPoint * 100; // percentage
+                    const y = item.coordinates.yPoint * 100; // percentage
+                    
+                    marker.style.left = `${x}%`;
+                    marker.style.top = `${y}%`;
+                    
+                    // Add tooltip
+                    const tooltip = document.createElement('div');
+                    tooltip.className = 'tooltip';
+                    tooltip.textContent = item.name;
+                    marker.appendChild(tooltip);
+                    
+                    // Add click handler to highlight corresponding item in list
+                    marker.addEventListener('click', () => {
+                        highlightItem(index);
+                    });
+                    
+                    overlay.appendChild(marker);
+                });
+            }
+        }
+
+        function highlightItem(index) {
+            // Remove previous highlights
+            clearHighlights();
+            
+            // Highlight selected item
+            const itemCard = document.getElementById(`item-${index}`);
+            if (itemCard) {
+                itemCard.style.background = '#e8f4fd';
+                itemCard.style.borderLeftColor = '#ff4757';
+                itemCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        function highlightMarker(index) {
+            // Remove previous highlights
+            clearHighlights();
+            
+            // Highlight selected marker
+            const marker = document.getElementById(`marker-${index}`);
+            if (marker) {
+                marker.style.background = '#ff3742';
+                marker.style.transform = 'translate(-50%, -50%) scale(1.5)';
+                marker.style.zIndex = '15';
+            }
+            
+            // Highlight corresponding item card
+            const itemCard = document.getElementById(`item-${index}`);
+            if (itemCard) {
+                itemCard.style.background = '#e8f4fd';
+                itemCard.style.borderLeftColor = '#ff4757';
+            }
+        }
+
+        function clearHighlights() {
+            // Clear item card highlights
+            document.querySelectorAll('.item-card').forEach(card => {
+                card.style.background = 'white';
+                card.style.borderLeftColor = '#667eea';
+            });
+            
+            // Clear marker highlights
+            document.querySelectorAll('.object-marker').forEach(marker => {
+                marker.style.background = '#ff4757';
+                marker.style.transform = 'translate(-50%, -50%)';
+                marker.style.zIndex = '10';
+            });
+        }
+
+        function hideResults() {
+            document.getElementById('results').classList.remove('show');
+        }
+
+        function hideItemsList() {
+            document.getElementById('itemsList').classList.remove('show');
+            // Clear markers
+            const overlay = document.getElementById('imageOverlay');
+            if (overlay) overlay.innerHTML = '';
+        }
+
+        function showError(message) {
+            document.getElementById('error').textContent = message;
+            document.getElementById('error').classList.add('show');
+        }
+
+        function hideError() {
+            document.getElementById('error').classList.remove('show');
+        }
+    </script>
+</body>
+</html>
