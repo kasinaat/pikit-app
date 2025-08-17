@@ -23,14 +23,14 @@ app.get('/api/operations', (req, res) => {
             'objectDetection': {
                 name: 'Object Detection',
                 description: 'Analyze refrigerator images to identify all visible food items with their precise coordinates (0.0-1.0 normalized). Perfect for tracking inventory and finding items.',
-                endpoint: '/process/refrigerator',
+                endpoint: '/api/process/refrigerator',
                 supportedFileTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'],
                 example: 'Upload a photo of your refrigerator interior'
             },
             'billExtraction': {
                 name: 'Bill Extraction', 
                 description: 'Extract all information from bills and receipts including item names, prices, quantities, units, store details, date, time, and total amount. Great for expense tracking.',
-                endpoint: '/process/bill',
+                endpoint: '/api/process/bill',
                 supportedFileTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'],
                 example: 'Upload a photo of a grocery receipt or bill'
             }
