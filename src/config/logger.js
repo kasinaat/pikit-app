@@ -26,9 +26,7 @@ const logColors = {
 // Tell winston that you want to link the colors
 winston.addColors(logColors);
 
-// Define which transports the logger must use to print out messages
 const transports = [
-    // Allow console logging in development
     new winston.transports.Console({
         format: winston.format.combine(
             winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
@@ -37,27 +35,9 @@ const transports = [
                 (info) => `${info.timestamp} ${info.level}: ${info.message}`
             )
         )
-    }),
-    // Allow file logging for errors
-    new winston.transports.File({
-        filename: path.join(process.cwd(), 'logs/error.log'),
-        level: 'error',
-        format: winston.format.combine(
-            winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
-            winston.format.json()
-        )
-    }),
-    // Allow file logging for all logs
-    new winston.transports.File({
-        filename: path.join(process.cwd(), 'logs/combined.log'),
-        format: winston.format.combine(
-            winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
-            winston.format.json()
-        )
     })
 ];
 
-// Create the logger instance
 const Logger = winston.createLogger({
     level: process.env.LOG_LEVEL || 'info',
     levels: logLevels,

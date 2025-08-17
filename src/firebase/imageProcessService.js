@@ -14,7 +14,7 @@ class ImageProcessingService {
         try {
             this.validateFile(file);
             
-            const fileBuffer = await fs.readFile(file.path);
+            const fileBuffer = file.buffer || await fs.readFile(file.path);
             
             const result = await this.modelService.processImage(
                 fileBuffer, 
@@ -43,7 +43,9 @@ class ImageProcessingService {
                 fileName: file?.originalname,
                 fileSize: file?.size 
             });
-            await this.cleanupFile(file.path);
+            if (file.path) {
+                await this.cleanupFile(file.path);
+            }
             throw new Error(`${operation} processing failed: ${error.message}`);
         }
     }
@@ -54,7 +56,9 @@ class ImageProcessingService {
         const items = result.response.objects.map(item => new Item(item));
         await Promise.all(items.map(item => item.save()));
         Logger.info('Object detection completed', { objectCount: items.length, fileName: file.originalname });
-        await this.cleanupFile(file.path);
+        if (file.path) {
+            await this.cleanupFile(file.path);
+        }
         return result;
     }
 
@@ -68,7 +72,9 @@ class ImageProcessingService {
             itemCount: result.response?.data?.items?.length,
             fileName: file.originalname 
         });
-        await this.cleanupFile(file.path);
+        if (file.path) {
+            await this.cleanupFile(file.path);
+        }
         return result;
     }
 
