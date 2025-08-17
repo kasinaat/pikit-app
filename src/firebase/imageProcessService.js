@@ -3,6 +3,7 @@ import modelService from './modelService.js';
 import fs from 'fs/promises';
 import Item from './models/items.js';
 import Bill from './models/bills.js';
+import Logger from '../config/logger.js';
 
 class ImageProcessingService {
     constructor() {
@@ -36,24 +37,37 @@ class ImageProcessingService {
             };
 
         } catch (error) {
-            console.error(`Error in ${operation}:`, error);
+            Logger.error(`Error in ${operation}`, { 
+                operation, 
+                error: error.message, 
+                fileName: file?.originalname,
+                fileSize: file?.size 
+            });
             await this.cleanupFile(file.path);
             throw new Error(`${operation} processing failed: ${error.message}`);
         }
     }
 
     async detectObjects(file, customPrompt = null) {
+        Logger.info('Starting object detection', { fileName: file.originalname, fileSize: file.size });
         const result =  await this.processWithOperation(file, Operations.OBJECT_DETECTION, customPrompt);
         const items = result.response.objects.map(item => new Item(item));
         await Promise.all(items.map(item => item.save()));
+        Logger.info('Object detection completed', { objectCount: items.length, fileName: file.originalname });
         await this.cleanupFile(file.path);
         return result;
     }
 
     async extractBillData(file, customPrompt = null) {
+        Logger.info('Starting bill extraction', { fileName: file.originalname, fileSize: file.size });
         const result = await this.processWithOperation(file, Operations.BILL_EXTRACTION , customPrompt);
         const bill = new Bill(result.response);
         await bill.save();
+        Logger.info('Bill extraction completed', { 
+            store: result.response?.data?.store, 
+            itemCount: result.response?.data?.items?.length,
+            fileName: file.originalname 
+        });
         await this.cleanupFile(file.path);
         return result;
     }
@@ -61,9 +75,9 @@ class ImageProcessingService {
     async cleanupFile(filePath) {
         try {
             await fs.unlink(filePath);
-            console.log(`Cleaned up temporary file: ${filePath}`);
+            Logger.debug('Cleaned up temporary file', { filePath });
         } catch (error) {
-            console.warn(`Failed to cleanup file ${filePath}:`, error.message);
+            Logger.warn('Failed to cleanup file', { filePath, error: error.message });
         }
     }
 

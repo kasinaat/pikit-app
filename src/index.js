@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import imageProcessingService from './firebase/imageProcessService.js';
+import Logger from './config/logger.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -49,6 +50,7 @@ app.get('/operations', (req, res) => {
             totalOperations: Object.keys(operations).length
         });
     } catch (error) {
+        Logger.error('Error in operations endpoint', { error: error.message });
         res.status(500).json({
             success: false,
             error: error.message
@@ -58,10 +60,21 @@ app.get('/operations', (req, res) => {
 
 app.post('/process/refrigerator', upload.single('file'), async (req, res) => {
     try {
+        Logger.info('Processing refrigerator image', { 
+            fileName: req.file?.originalname,
+            fileSize: req.file?.size,
+            hasCustomPrompt: !!req.body.customPrompt 
+        });
+        
         const customPrompt = req.body.customPrompt || 
             "Analyze this refrigerator image. Identify all visible food items with coordinates (0.0-1.0). Include confidence scores.";
         
         const result = await imageProcessingService.detectObjects(req.file, customPrompt);
+        
+        Logger.info('Refrigerator analysis completed', { 
+            fileName: req.file?.originalname,
+            objectCount: result.response?.objects?.length 
+        });
         
         res.json({
             success: true,
@@ -70,7 +83,10 @@ app.post('/process/refrigerator', upload.single('file'), async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error processing refrigerator:', error);
+        Logger.error('Error processing refrigerator', { 
+            error: error.message,
+            fileName: req.file?.originalname 
+        });
         res.status(400).json({
             success: false,
             message: 'Failed to analyze refrigerator',
@@ -81,10 +97,22 @@ app.post('/process/refrigerator', upload.single('file'), async (req, res) => {
 
 app.post('/process/bill', upload.single('file'), async (req, res) => {
     try {
+        Logger.info('Processing bill image', { 
+            fileName: req.file?.originalname,
+            fileSize: req.file?.size,
+            hasCustomPrompt: !!req.body.customPrompt 
+        });
+        
         const customPrompt = req.body.customPrompt || 
             "Extract all information from this bill/receipt including items, prices, store details, and totals.";
         
         const result = await imageProcessingService.extractBillData(req.file, customPrompt);
+        
+        Logger.info('Bill extraction completed', { 
+            fileName: req.file?.originalname,
+            store: result.response?.data?.store,
+            itemCount: result.response?.data?.items?.length 
+        });
         
         res.json({
             success: true,
@@ -93,7 +121,10 @@ app.post('/process/bill', upload.single('file'), async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error processing bill:', error);
+        Logger.error('Error processing bill', { 
+            error: error.message,
+            fileName: req.file?.originalname 
+        });
         res.status(400).json({
             success: false,
             message: 'Failed to extract bill data',
@@ -103,7 +134,12 @@ app.post('/process/bill', upload.single('file'), async (req, res) => {
 });
 
 app.use((error, req, res, next) => {
-    console.error('Unhandled error:', error);
+    Logger.error('Unhandled error', { 
+        error: error.message,
+        stack: error.stack,
+        url: req.url,
+        method: req.method 
+    });
     res.status(500).json({
         success: false,
         message: 'Internal server error',
@@ -113,7 +149,7 @@ app.use((error, req, res, next) => {
 
 // Start server
 app.listen(port, () => {
-    console.log(`🚀 Pikit App server is running on port ${port}`);
+    Logger.info('🚀 Pikit App server started', { port, environment: process.env.NODE_ENV || 'development' });
 });
 
 export default app;

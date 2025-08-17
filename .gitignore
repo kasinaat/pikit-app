@@ -6,3 +6,4 @@ tmp/
 temp/
 uploads/
 .vscode/*
+logs/

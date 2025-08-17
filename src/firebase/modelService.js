@@ -7,6 +7,7 @@ import { GoogleAIBackend } from "firebase/ai";
 import { getGenerativeModel } from "firebase/ai";
 import { Schema } from "firebase/ai";
 import { getFirestore } from "firebase/firestore";
+import Logger from "../config/logger.js";
 
 class ModelService {
     constructor() {
@@ -95,6 +96,14 @@ class ModelService {
 
     async processImage(imageBuffer, mimeType, operation, customPrompt = null, modelType = "gemini-2.5-flash") {
         try {
+            Logger.info('Processing image with AI model', { 
+                operation, 
+                modelType, 
+                mimeType,
+                imageSize: imageBuffer.length,
+                hasCustomPrompt: !!customPrompt 
+            });
+            
             if (!this.operations.includes(operation)) {
                 throw new Error(`Invalid operation: ${operation}. Available: ${this.operations.join(', ')}`);
             }
@@ -110,6 +119,12 @@ class ModelService {
             const result = await model.generateContent([prompt, imagePart]);
             const responseData = JSON.parse(result.response.text());
             
+            Logger.info('AI model processing completed', { 
+                operation, 
+                modelType,
+                responseSize: JSON.stringify(responseData).length 
+            });
+            
             return {
                 success: true,
                 operation: operation,
@@ -120,7 +135,12 @@ class ModelService {
             };
 
         } catch (error) {
-            console.error(`Error in ${operation}:`, error);
+            Logger.error('Error in AI model processing', { 
+                operation, 
+                modelType, 
+                error: error.message,
+                mimeType 
+            });
             throw new Error(`${operation} failed: ${error.message}`);
         }
     }
